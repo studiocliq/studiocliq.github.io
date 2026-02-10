@@ -1,6 +1,7 @@
 import { jsxs, jsx } from "react/jsx-runtime";
 import { renderToString } from "react-dom/server";
 import { Link, useParams, Routes, Route, StaticRouter } from "react-router";
+import { useRef, useEffect } from "react";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -10,7 +11,8 @@ import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
-const __vite_glob_0_0 = '---\ntitle: Hello World\ndate: 2025-01-01\n---\n\nThis is my first blog post with **markdown** support.\n\n## Code Highlighting\n\nInline code: `const x = 42`\n\n```typescript\nfunction greet(name: string): string {\n  return `Hello, ${name}!`;\n}\n\nconsole.log(greet("World"));\n```\n\n### Syntax Support\n\nThe blog supports many languages including TypeScript, Python, and Rust.\n\n### Theme Options\n\nCode blocks use the GitHub light theme by default.\n\n## LaTeX Math\n\nInline math: $E = mc^2$\n\nBlock math:\n\n$$\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n$$\n\n### Inline Equations\n\nUse single dollar signs for inline math like $a^2 + b^2 = c^2$.\n\n### Block Equations\n\nUse double dollar signs for centered block equations.\n\n## Tables\n\n| Name    | Role       | Language   |\n|---------|------------|------------|\n| Alice   | Developer  | TypeScript |\n| Bob     | Designer   | CSS        |\n| Charlie | Writer     | Markdown   |\n\n## Blockquote\n\n> The best way to predict the future is to invent it.\n> — Alan Kay\n\n## Lists\n\n- Item one\n- Item two\n- Item three\n\n1. First\n2. Second\n3. Third\n\n## Task List\n\n- [x] Setup Vite\n- [x] Add routing\n- [x] Add markdown support\n- [ ] Write more posts\n';
+import mermaid from "mermaid";
+const __vite_glob_0_0 = '---\ntitle: Hello World\ndate: 2025-01-01\n---\n\nThis is my first blog post with **markdown** support.\n\n## Code Highlighting\n\nInline code: `const x = 42`\n\n```typescript\nfunction greet(name: string): string {\n  return `Hello, ${name}!`;\n}\n\nconsole.log(greet("World"));\n```\n\n### Syntax Support\n\nThe blog supports many languages including TypeScript, Python, and Rust.\n\n### Theme Options\n\nCode blocks use the GitHub light theme by default.\n\n## LaTeX Math\n\nInline math: $E = mc^2$\n\nBlock math:\n\n$$\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n$$\n\n### Inline Equations\n\nUse single dollar signs for inline math like $a^2 + b^2 = c^2$.\n\n### Block Equations\n\nUse double dollar signs for centered block equations.\n\n## Tables\n\n| Name    | Role       | Language   |\n|---------|------------|------------|\n| Alice   | Developer  | TypeScript |\n| Bob     | Designer   | CSS        |\n| Charlie | Writer     | Markdown   |\n\n## Blockquote\n\n> The best way to predict the future is to invent it.\n> — Alan Kay\n\n## Lists\n\n- Item one\n- Item two\n- Item three\n\n1. First\n2. Second\n3. Third\n\n## Task List\n\n- [x] Setup Vite\n- [x] Add routing\n- [x] Add markdown support\n- [ ] Write more posts\n\n## Mermaid Diagrams\n\n```mermaid\ngraph LR\n    A[Write Markdown] --> B[Build with Vite]\n    B --> C[Static HTML]\n    C --> D[Deploy]\n```\n';
 const postFiles = /* @__PURE__ */ Object.assign({
   "/content/posts/hello-world.md": __vite_glob_0_0
 });
@@ -97,6 +99,36 @@ function About() {
     /* @__PURE__ */ jsx("section", { children: /* @__PURE__ */ jsx("h2", { children: "Career" }) })
   ] });
 }
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "base",
+  themeVariables: {
+    primaryColor: "#e8e0d0",
+    primaryTextColor: "#2c2416",
+    primaryBorderColor: "#5c4d3a",
+    lineColor: "#5c4d3a",
+    secondaryColor: "#f5f1e8",
+    tertiaryColor: "#f5f1e8",
+    fontFamily: '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif'
+  }
+});
+function rehypeMermaid() {
+  return (tree) => {
+    const visit = (node) => {
+      if (node.tagName === "pre" && node.children?.length === 1 && node.children[0].tagName === "code") {
+        const code = node.children[0];
+        const classes = code.properties?.className || [];
+        if (classes.includes("language-mermaid")) {
+          const text = code.children[0]?.value || "";
+          node.properties = { className: ["mermaid"] };
+          node.children = [{ type: "text", value: text }];
+        }
+      }
+      if (node.children) node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
 function extractHeadings(markdown) {
   const headings = [];
   const lines = markdown.split("\n");
@@ -111,10 +143,16 @@ function extractHeadings(markdown) {
   }
   return headings;
 }
-const processor = unified().use(remarkParse).use(remarkGfm).use(remarkMath).use(remarkRehype).use(rehypeKatex).use(rehypeHighlight).use(rehypeSlug).use(rehypeStringify);
+const processor = unified().use(remarkParse).use(remarkGfm).use(remarkMath).use(remarkRehype).use(rehypeKatex).use(rehypeMermaid).use(rehypeHighlight).use(rehypeSlug).use(rehypeStringify);
 function Markdown({ children }) {
+  const ref = useRef(null);
   const html = processor.processSync(children).toString();
-  return /* @__PURE__ */ jsx("div", { dangerouslySetInnerHTML: { __html: html } });
+  useEffect(() => {
+    if (ref.current?.querySelector(".mermaid")) {
+      mermaid.run({ nodes: ref.current.querySelectorAll(".mermaid") });
+    }
+  }, [html]);
+  return /* @__PURE__ */ jsx("div", { ref, dangerouslySetInnerHTML: { __html: html } });
 }
 function TableOfContents({ headings }) {
   if (headings.length === 0) {

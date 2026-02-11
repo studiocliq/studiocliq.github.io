@@ -64,7 +64,7 @@ function Home() {
   const posts = getAllPosts();
   return /* @__PURE__ */ jsxs("main", { children: [
     /* @__PURE__ */ jsx("h1", { children: "Blog" }),
-    /* @__PURE__ */ jsx("ul", { children: posts.map((post) => /* @__PURE__ */ jsxs("li", { children: [
+    /* @__PURE__ */ jsx("ul", { className: "post-list", children: posts.map((post) => /* @__PURE__ */ jsxs("li", { children: [
       /* @__PURE__ */ jsx(Link, { to: `/posts/${post.slug}`, children: post.title }),
       /* @__PURE__ */ jsx("time", { dateTime: post.date, children: post.date })
     ] }, post.slug)) })
@@ -137,7 +137,7 @@ function extractHeadings(markdown) {
     if (match) {
       const level = match[1].length;
       const text = match[2].trim();
-      const id = text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
+      const id = text.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, "").replace(/\s+/g, "-");
       headings.push({ id, text, level });
     }
   }
